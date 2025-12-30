@@ -1,0 +1,2260 @@
+
+salesprediction1.ipynb
+salesprediction1.ipynb_
+Project -5
+SALES PREDICTION USING PYTHON
+image.png
+
+Introduction: In the dynamic landscape of product and service-based businesses, strategic decision-making is crucial for sustained success. One pivotal aspect is the ability to forecast future sales accurately. Sales prediction involves leveraging historical data, such as advertising spend, target demographics, and advertising platforms, to anticipate consumer behavior and optimize resource allocation. In this context, data science plays a pivotal role, providing businesses with the tools to make informed predictions and maximize the impact of their advertising efforts.
+
+Objective: The primary objective of this project is to employ machine learning techniques to predict future sales for a product or service. By analyzing historical data encompassing factors like advertising spend, target demographics, and advertising platforms, we aim to develop a robust predictive model. The model's predictions will empower businesses to make strategic decisions regarding their advertising budgets, target audience, and promotional channels, ultimately optimizing sales performance.
+
+Model Used: For the initial phase of this sales prediction project, a Linear Regression model has been chosen as the primary predictive tool. Linear Regression is a foundational and interpretable model that provides insights into the linear relationships between the independent variables (advertising spend, target demographics, platform) and the dependent variable (sales). It serves as a starting point for understanding the overall trend and relationships within the data.
+
+As the project progresses, consideration will be given to exploring more sophisticated models such as Random Forest or Gradient Boosting, especially if the data exhibits non-linear patterns or interactions between features. The choice of model will be guided by the need for accuracy and interpretability, ensuring that the final model aligns with the business's specific goals and requirements.
+
+IMPORT NECESSARY LIBRARIES
+
+
+[ ]
+# Importing Python Libraries for Data Processing
+import os,sys
+import numpy as np
+import pandas as pd
+import warnings
+warnings.filterwarnings('ignore')
+
+# Data Visualization Libraries
+import matplotlib.pyplot as plt
+%matplotlib inline
+import seaborn as sns
+sns.set()
+import plotly.express as px
+import plotly.graph_objects as go
+
+
+# Suppressing Warnings
+import warnings
+warnings.filterwarnings('ignore')
+
+# Natural Language Processing (NLP) and Text Analysis Libraries
+import re
+import string
+
+
+# Scikit-Learn (sklearn) Libraries for Machine Learning and Evaluations
+from sklearn.model_selection import train_test_split
+from sklearn.model_selection import GridSearchCV
+from sklearn.metrics import f1_score
+from sklearn.metrics import roc_auc_score
+
+#Models used
+from sklearn.naive_bayes import MultinomialNB
+from sklearn.model_selection import GridSearchCV
+from sklearn.linear_model import LogisticRegression
+from sklearn.ensemble import RandomForestClassifier
+from sklearn.tree import DecisionTreeClassifier
+#from sklearn.ensemble import DecisionTreeClassifier
+from sklearn.svm import SVC
+
+[ ]
+from google.colab import drive
+drive.mount('/content/drive',force_remount=True)
+Mounted at /content/drive
+
+[ ]
+path_to_file1= '/content/drive/MyDrive/Advertising.csv'
+
+[ ]
+import shutil
+
+# Copy the file to the current working directory in Colab
+shutil.copy(path_to_file1, './Advertising.csv')
+
+
+IMPORT DATASET
+
+
+[ ]
+df = pd.read_csv("/content/Advertising.csv")
+READ DATASET
+
+
+[ ]
+df.head()
+
+
+[ ]
+df.columns
+Index(['Unnamed: 0', 'TV', 'Radio', 'Newspaper', 'Sales'], dtype='object')
+
+[ ]
+df.shape
+(200, 5)
+
+[ ]
+df.drop(columns = ['Unnamed: 0'], axis=1,inplace = True)
+
+[ ]
+df.head()
+
+
+[ ]
+df.shape
+(200, 4)
+
+[ ]
+df.info()
+<class 'pandas.core.frame.DataFrame'>
+RangeIndex: 200 entries, 0 to 199
+Data columns (total 4 columns):
+ #   Column     Non-Null Count  Dtype  
+---  ------     --------------  -----  
+ 0   TV         200 non-null    float64
+ 1   Radio      200 non-null    float64
+ 2   Newspaper  200 non-null    float64
+ 3   Sales      200 non-null    float64
+dtypes: float64(4)
+memory usage: 6.4 KB
+
+[ ]
+df.dtypes
+TV           float64
+Radio        float64
+Newspaper    float64
+Sales        float64
+dtype: object
+EDA
+
+[ ]
+df.describe()
+
+
+[ ]
+# Customize the appearance using a color palette
+import matplotlib.pyplot as plt
+styled_summary = df.describe().T.style.background_gradient(cmap=("Set1"))
+
+# Display the styled summary
+styled_summary
+
+
+[ ]
+import plotly.express as px
+
+# Assuming df is your DataFrame
+# Calculate descriptive statistics and transpose
+summary = df.describe().T
+
+# Create an interactive bar chart with Plotly Express
+fig = px.bar(summary, y=summary.index, x=['mean', 'std', 'min', '25%', '50%', '75%', 'max'],
+             title='Descriptive Statistics',
+             labels={'value': 'Statistic', 'variable': 'Variable'},
+             width=800, height=400)
+
+# Customize layout
+fig.update_layout(barmode='group', xaxis=dict(title='Value'))
+
+# Show the interactive plot
+fig.show()
+
+
+Check for Null Values
+
+
+[ ]
+df.isnull().sum()
+TV           0
+Radio        0
+Newspaper    0
+Sales        0
+dtype: int64
+
+[ ]
+df.isnull().any()
+TV           False
+Radio        False
+Newspaper    False
+Sales        False
+dtype: bool
+There are no Null Values
+
+
+[ ]
+df.isna().sum()
+TV           0
+Radio        0
+Newspaper    0
+Sales        0
+dtype: int64
+There are no Nan values
+
+Check for duplicates
+
+
+[ ]
+df.duplicated().sum()
+0
+There are no duplicates
+
+
+[ ]
+sns.heatmap(df.isnull(),yticklabels = False, cbar = False)
+
+
+[ ]
+import missingno as msno
+
+[ ]
+missing = msno.matrix(df)
+missing.set_title("Missing Data for Advertising sales prediction dataset", fontsize=20)
+
+
+[ ]
+import plotly.express as px
+
+# Assuming df is your DataFrame
+fig = px.imshow(df.isnull(), color_continuous_scale='Viridis')
+fig.update_layout(title='Missing Data Heatmap')
+fig.show()
+
+
+
+[ ]
+import seaborn as sns
+plt.figure(figsize=(12, 6))
+sns.boxplot(data=df)
+plt.title('Box Plot of Data Variables')
+plt.show()
+
+
+There are outliers in Newspaper
+
+
+[ ]
+plt.figure(figsize=(12, 6))
+df.hist(bins=20)
+plt.suptitle('Histograms of Data Variables', x=0.5, y=1.02, ha='center', fontsize='large')
+plt.tight_layout(rect=[0, 0, 1, 0.96])
+plt.show()
+
+
+
+[ ]
+plt.figure(figsize=(10, 8))
+sns.heatmap(df.corr(), annot=True, cmap='coolwarm', fmt='.2f', linewidths=0.5)
+plt.title('Correlation Heatmap')
+plt.show()
+
+
+
+[ ]
+import seaborn as sns
+sns.pairplot(df)
+plt.show()
+
+
+
+[ ]
+plt.figure(figsize=(12, 6))
+sns.violinplot(data=df)
+plt.title('Violin Plot of Data Variables')
+plt.show()
+
+
+Check for Outliers
+
+
+[ ]
+import seaborn as sns
+import matplotlib.pyplot as plt
+
+# Assuming df is your DataFrame
+plt.figure(figsize=(12, 6))
+sns.boxplot(data=df)
+plt.title('Box Plot for Outliers Detection')
+plt.show()
+
+
+There are outliers in Newspaper
+
+
+[ ]
+import plotly.express as px
+
+# Assuming df is your DataFrame
+fig = px.box(df, title='Box Plot for Outliers Detection')
+fig.update_layout(title_text='Box Plot for Outliers Detection')
+fig.show()
+
+
+OUTLIER TREATMENT -REMOVING OUTLIERS USING IQR
+
+[ ]
+# Assuming df is your DataFrame and 'Newspaper' is the variable of interest
+Q1 = df['Newspaper'].quantile(0.25)
+Q3 = df['Newspaper'].quantile(0.75)
+
+# Calculate IQR (Interquartile Range)
+IQR = Q3 - Q1
+
+# Set the lower and upper bounds for outliers
+lower_bound = Q1 - 1.5 * IQR
+upper_bound = Q3 + 1.5 * IQR
+
+# Identify outliers using the bounds
+outliers = (df['Newspaper'] < lower_bound) | (df['Newspaper'] > upper_bound)
+
+# Create a new DataFrame without outliers
+df = df[~outliers]
+
+
+[ ]
+df.head()
+
+
+[ ]
+import plotly.express as px
+
+# Assuming df_no_outliers is your DataFrame without outliers
+fig = px.box(df, title='Box Plot without Outliers')
+fig.update_layout(title_text='Box Plot without Outliers')
+fig.show()
+
+
+Now all outliers are removed.
+
+The IQR (Interquartile Range) method is a robust statistical technique for identifying outliers in a dataset. It involves calculating the spread of the middle 50% of the data, which is defined by the interquartile range. Outliers are then identified as data points falling below the lower bound or above the upper bound, which are set at a certain distance from the quartiles. Compute the first quartile (Q1) and the third quartile (Q3) for the target variable ('Newspaper' in this case). Q1 = df['Newspaper'].quantile(0.25) Q3 = df['Newspaper'].quantile(0.75)
+
+Calculate IQR:
+
+Find the interquartile range (IQR) by subtracting Q1 from Q3. IQR = Q3 - Q1
+
+Set Bounds:
+
+Establish lower and upper bounds to identify potential outliers. python lower_bound = Q1 - 1.5 * IQR upper_bound = Q3 + 1.5 * IQR
+
+Identify Outliers:
+
+Create a boolean mask to mark data points that fall outside the defined bounds. outliers = (df['Newspaper'] < lower_bound) | (df['Newspaper'] > upper_bound)
+
+
+[ ]
+for i in df:
+  print("*************************************",i,
+        "**************************************")
+  print()
+  print(set(df[i].tolist()))
+  print()
+************************************* TV **************************************
+
+{0.7, 4.1, 5.4, 7.3, 8.7, 8.6, 7.8, 8.4, 11.7, 13.2, 13.1, 16.9, 17.2, 18.8, 19.4, 17.9, 19.6, 18.7, 23.8, 25.1, 26.8, 27.5, 28.6, 25.0, 25.6, 31.5, 36.9, 38.0, 39.5, 38.2, 43.1, 44.5, 43.0, 44.7, 48.3, 50.0, 53.5, 56.2, 57.5, 215.4, 59.6, 62.3, 66.1, 66.9, 68.4, 69.2, 70.6, 69.0, 73.4, 74.7, 75.3, 76.4, 76.3, 78.2, 75.1, 80.2, 75.5, 85.7, 87.2, 88.3, 89.7, 90.4, 93.9, 94.2, 95.7, 96.2, 97.5, 97.2, 100.4, 102.7, 104.6, 107.4, 109.8, 110.7, 112.9, 116.0, 117.2, 120.5, 120.2, 121.0, 123.1, 125.7, 129.4, 131.1, 131.7, 134.3, 135.2, 136.2, 137.9, 139.3, 139.2, 141.3, 142.9, 140.3, 139.5, 147.3, 149.8, 149.7, 151.5, 156.6, 163.3, 163.5, 164.5, 165.6, 166.8, 168.4, 170.2, 171.3, 172.5, 175.1, 175.7, 177.0, 180.8, 182.6, 184.9, 187.9, 187.8, 188.4, 191.1, 193.2, 193.7, 195.4, 197.6, 198.9, 199.8, 199.1, 202.5, 204.1, 205.0, 206.9, 206.8, 209.6, 210.8, 210.7, 213.4, 214.7, 213.5, 216.4, 216.8, 218.4, 217.7, 220.3, 219.8, 222.4, 220.5, 224.0, 225.8, 218.5, 227.2, 228.3, 228.0, 230.1, 229.5, 232.1, 234.5, 237.4, 238.2, 239.9, 240.1, 239.3, 239.8, 241.7, 243.2, 248.8, 248.4, 250.9, 253.8, 255.4, 261.3, 262.9, 262.7, 265.6, 266.9, 265.2, 273.7, 276.9, 276.7, 280.2, 281.4, 280.7, 283.6, 284.3, 286.0, 287.6, 289.7, 290.7, 292.9, 293.6}
+
+************************************* Radio **************************************
+
+{0.8, 1.5, 2.1, 2.6, 3.5, 5.8, 5.1, 7.6, 1.4, 4.1, 10.8, 8.4, 12.6, 9.9, 11.7, 15.9, 16.9, 16.7, 16.0, 19.6, 20.5, 17.4, 20.0, 23.9, 24.0, 22.3, 26.7, 27.7, 27.1, 29.3, 28.3, 25.7, 32.8, 32.9, 33.4, 35.1, 28.8, 37.8, 37.7, 39.3, 39.6, 41.3, 41.5, 43.8, 41.7, 45.9, 46.2, 47.7, 48.9, 49.4, 49.6, 42.7, 43.9, 44.5, 47.8, 46.4, 2.0, 11.0, 49.0, 10.0, 12.0, 14.5, 14.0, 15.5, 17.0, 18.4, 18.1, 20.6, 1.9, 20.9, 20.1, 21.0, 2.4, 2.9, 21.1, 22.5, 3.4, 23.6, 24.6, 25.5, 25.9, 26.9, 27.5, 28.1, 28.5, 28.9, 29.6, 29.9, 29.5, 4.9, 30.6, 5.4, 31.6, 0.0, 32.3, 33.0, 33.5, 33.2, 34.3, 34.6, 35.0, 35.4, 35.8, 35.6, 36.5, 36.9, 36.8, 37.6, 38.0, 38.9, 38.6, 13.9, 39.0, 39.7, 40.6, 40.3, 15.4, 2.3, 41.1, 42.8, 42.3, 4.3, 1.3, 42.0, 43.7, 43.0, 43.5, 45.1, 7.3, 7.8, 46.8, 47.0, 0.4, 8.2, 9.3, 11.8, 14.3, 14.8, 14.7, 15.8, 3.7, 17.2, 5.7, 5.2, 19.2, 7.7, 20.3, 21.7, 21.3, 23.3, 25.8, 0.3, 26.8, 27.2, 28.7, 30.2, 7.1, 1.6, 8.6, 9.6, 3.1, 10.1, 10.6, 11.6, 12.1}
+
+************************************* Newspaper **************************************
+
+{1.0, 1.8, 3.6, 4.0, 5.0, 2.2, 7.2, 7.4, 8.5, 9.3, 11.6, 12.6, 8.4, 10.2, 15.9, 16.6, 9.4, 18.3, 19.1, 19.5, 21.2, 22.9, 23.5, 24.2, 18.5, 26.2, 26.4, 28.9, 21.4, 27.3, 30.0, 31.6, 32.0, 31.5, 34.6, 35.1, 35.7, 36.8, 38.6, 38.7, 40.8, 39.6, 41.4, 43.2, 43.3, 45.1, 46.0, 45.7, 49.6, 49.9, 51.4, 52.9, 53.4, 54.7, 55.8, 11.0, 51.2, 58.5, 58.4, 58.7, 60.0, 59.0, 63.2, 56.5, 65.9, 65.7, 65.6, 59.7, 69.3, 69.2, 71.8, 72.3, 73.4, 74.2, 75.0, 75.6, 79.2, 16.0, 84.8, 17.9, 17.0, 17.6, 89.4, 18.4, 19.4, 19.6, 20.5, 20.6, 21.6, 2.4, 22.0, 23.1, 23.4, 25.6, 25.9, 5.5, 26.6, 27.4, 5.9, 5.4, 6.0, 6.4, 32.5, 33.8, 33.0, 34.5, 34.4, 35.6, 35.2, 10.9, 36.9, 11.9, 37.7, 37.9, 12.4, 12.9, 37.0, 38.9, 41.8, 43.1, 5.3, 43.0, 5.8, 44.3, 45.9, 45.2, 9.0, 46.2, 9.5, 47.4, 48.7, 49.8, 49.3, 50.4, 50.6, 50.5, 0.9, 52.7, 57.6, 8.7, 8.3, 9.2, 10.7, 1.7, 12.8, 13.8, 14.2, 14.8, 66.2, 3.2, 3.7, 5.7, 18.2, 19.3, 20.7, 20.3, 22.3, 23.2, 23.7, 24.3, 0.3, 27.2, 29.7, 30.7, 31.7, 31.3, 8.1, 2.1, 13.1, 15.6}
+
+************************************* Sales **************************************
+
+{1.6, 3.2, 4.8, 5.6, 5.5, 7.2, 8.6, 9.3, 10.4, 11.8, 12.9, 13.2, 10.6, 9.2, 9.7, 17.4, 18.5, 19.0, 11.3, 14.6, 22.1, 22.4, 24.4, 18.0, 18.9, 21.4, 25.4, 21.5, 23.2, 22.6, 23.7, 24.2, 27.0, 26.2, 7.0, 8.5, 8.0, 9.5, 10.5, 11.0, 11.5, 12.5, 12.0, 14.0, 14.5, 15.5, 15.0, 16.6, 16.0, 16.9, 16.1, 17.1, 17.0, 17.6, 18.4, 19.4, 19.6, 20.1, 25.5, 5.9, 6.9, 8.4, 9.4, 9.9, 10.9, 11.9, 11.4, 12.4, 13.4, 14.9, 14.4, 15.9, 5.3, 7.3, 8.8, 8.7, 10.7, 10.8, 10.3, 11.2, 11.7, 12.8, 12.3, 12.2, 12.7, 13.3, 14.7, 14.8, 14.2, 15.7, 15.2, 15.3, 16.7, 17.2, 17.3, 5.7, 18.3, 6.7, 19.2, 19.8, 19.7, 20.7, 20.2, 20.8, 21.2, 21.7, 21.8, 22.3, 22.2, 23.8, 24.7, 6.6, 7.6, 8.1, 9.6, 10.1, 11.6, 12.6, 13.6, 14.1, 15.6}
+
+
+[ ]
+df.dtypes
+TV           float64
+Radio        float64
+Newspaper    float64
+Sales        float64
+dtype: object
+
+[ ]
+df.tail()
+
+
+[ ]
+# Assuming df is your DataFrame
+import plotly.express as px
+
+# Calculate the sum of values for each column
+sum_values = df[['TV', 'Radio', 'Newspaper']].sum()
+
+# Create a pie chart using Plotly Express
+fig = px.pie(names=sum_values.index, values=sum_values.values, title='Distribution of TV, Radio, Newspaper')
+fig.show()
+
+
+
+[ ]
+import plotly.express as px
+
+# Assuming df is your DataFrame
+fig = px.sunburst(df, path=['TV', 'Radio', 'Newspaper'], values='Sales',
+                  title='Sunburst Plot of Sales for TV, Radio, and Newspaper')
+
+# Show the plot
+fig.show()
+
+
+DATA VISUALISATION
+
+
+[ ]
+!pip install pydantic typing-extensions
+
+Requirement already satisfied: pydantic in /usr/local/lib/python3.10/dist-packages (1.10.13)
+Requirement already satisfied: typing-extensions in /usr/local/lib/python3.10/dist-packages (4.9.0)
+
+[ ]
+# install the dtale package
+!pip install dtale
+# load the dtale
+import dtale
+# use show
+dtale.show(df)
+Requirement already satisfied: dtale in /usr/local/lib/python3.10/dist-packages (3.8.1)
+Requirement already satisfied: dash-colorscales in /usr/local/lib/python3.10/dist-packages (from dtale) (0.0.4)
+Requirement already satisfied: dash-daq in /usr/local/lib/python3.10/dist-packages (from dtale) (0.5.0)
+Requirement already satisfied: Flask-Compress in /usr/local/lib/python3.10/dist-packages (from dtale) (1.14)
+Requirement already satisfied: future>=0.14.0 in /usr/local/lib/python3.10/dist-packages (from dtale) (0.18.3)
+Requirement already satisfied: kaleido in /usr/local/lib/python3.10/dist-packages (from dtale) (0.2.1)
+Requirement already satisfied: missingno in /usr/local/lib/python3.10/dist-packages (from dtale) (0.5.2)
+Requirement already satisfied: pandas in /usr/local/lib/python3.10/dist-packages (from dtale) (1.5.3)
+Requirement already satisfied: squarify in /usr/local/lib/python3.10/dist-packages (from dtale) (0.4.3)
+Requirement already satisfied: strsimpy in /usr/local/lib/python3.10/dist-packages (from dtale) (0.2.1)
+Requirement already satisfied: six in /usr/local/lib/python3.10/dist-packages (from dtale) (1.16.0)
+Requirement already satisfied: xlrd in /usr/local/lib/python3.10/dist-packages (from dtale) (2.0.1)
+Requirement already satisfied: beautifulsoup4 in /usr/local/lib/python3.10/dist-packages (from dtale) (4.11.2)
+Requirement already satisfied: certifi in /usr/local/lib/python3.10/dist-packages (from dtale) (2023.11.17)
+Requirement already satisfied: flask-ngrok in /usr/local/lib/python3.10/dist-packages (from dtale) (0.0.25)
+Requirement already satisfied: lz4 in /usr/local/lib/python3.10/dist-packages (from dtale) (4.3.3)
+Requirement already satisfied: cycler in /usr/local/lib/python3.10/dist-packages (from dtale) (0.12.1)
+Requirement already satisfied: dash-bootstrap-components<=1.3.1 in /usr/local/lib/python3.10/dist-packages (from dtale) (1.3.1)
+Requirement already satisfied: dash in /usr/local/lib/python3.10/dist-packages (from dtale) (2.14.2)
+Requirement already satisfied: scikit-learn in /usr/local/lib/python3.10/dist-packages (from dtale) (1.2.2)
+Requirement already satisfied: seaborn in /usr/local/lib/python3.10/dist-packages (from dtale) (0.12.2)
+Requirement already satisfied: statsmodels in /usr/local/lib/python3.10/dist-packages (from dtale) (0.14.1)
+Requirement already satisfied: werkzeug in /usr/local/lib/python3.10/dist-packages (from dtale) (3.0.1)
+Requirement already satisfied: networkx in /usr/local/lib/python3.10/dist-packages (from dtale) (3.2.1)
+Requirement already satisfied: numpy in /usr/local/lib/python3.10/dist-packages (from dtale) (1.23.5)
+Requirement already satisfied: openpyxl!=3.2.0b1 in /usr/local/lib/python3.10/dist-packages (from dtale) (3.1.2)
+Requirement already satisfied: xarray in /usr/local/lib/python3.10/dist-packages (from dtale) (2023.7.0)
+Requirement already satisfied: et-xmlfile in /usr/local/lib/python3.10/dist-packages (from dtale) (1.1.0)
+Requirement already satisfied: plotly in /usr/local/lib/python3.10/dist-packages (from dtale) (5.15.0)
+Requirement already satisfied: Flask<2.3 in /usr/local/lib/python3.10/dist-packages (from dtale) (2.2.5)
+Requirement already satisfied: itsdangerous in /usr/local/lib/python3.10/dist-packages (from dtale) (2.1.2)
+Requirement already satisfied: requests in /usr/local/lib/python3.10/dist-packages (from dtale) (2.31.0)
+Requirement already satisfied: contourpy in /usr/local/lib/python3.10/dist-packages (from dtale) (1.2.0)
+Requirement already satisfied: matplotlib in /usr/local/lib/python3.10/dist-packages (from dtale) (3.7.1)
+Requirement already satisfied: scipy in /usr/local/lib/python3.10/dist-packages (from dtale) (1.11.4)
+Requirement already satisfied: dash-html-components==2.0.0 in /usr/local/lib/python3.10/dist-packages (from dash->dtale) (2.0.0)
+Requirement already satisfied: dash-core-components==2.0.0 in /usr/local/lib/python3.10/dist-packages (from dash->dtale) (2.0.0)
+Requirement already satisfied: dash-table==5.0.0 in /usr/local/lib/python3.10/dist-packages (from dash->dtale) (5.0.0)
+Requirement already satisfied: typing-extensions>=4.1.1 in /usr/local/lib/python3.10/dist-packages (from dash->dtale) (4.9.0)
+Requirement already satisfied: retrying in /usr/local/lib/python3.10/dist-packages (from dash->dtale) (1.3.4)
+Requirement already satisfied: ansi2html in /usr/local/lib/python3.10/dist-packages (from dash->dtale) (1.9.1)
+Requirement already satisfied: nest-asyncio in /usr/local/lib/python3.10/dist-packages (from dash->dtale) (1.5.8)
+Requirement already satisfied: setuptools in /usr/local/lib/python3.10/dist-packages (from dash->dtale) (67.7.2)
+Requirement already satisfied: importlib-metadata in /usr/local/lib/python3.10/dist-packages (from dash->dtale) (7.0.0)
+Requirement already satisfied: Jinja2>=3.0 in /usr/local/lib/python3.10/dist-packages (from Flask<2.3->dtale) (3.1.2)
+Requirement already satisfied: click>=8.0 in /usr/local/lib/python3.10/dist-packages (from Flask<2.3->dtale) (8.1.7)
+Requirement already satisfied: tenacity>=6.2.0 in /usr/local/lib/python3.10/dist-packages (from plotly->dtale) (8.2.3)
+Requirement already satisfied: packaging in /usr/local/lib/python3.10/dist-packages (from plotly->dtale) (23.2)
+Requirement already satisfied: MarkupSafe>=2.1.1 in /usr/local/lib/python3.10/dist-packages (from werkzeug->dtale) (2.1.3)
+Requirement already satisfied: soupsieve>1.2 in /usr/local/lib/python3.10/dist-packages (from beautifulsoup4->dtale) (2.5)
+Requirement already satisfied: brotli in /usr/local/lib/python3.10/dist-packages (from Flask-Compress->dtale) (1.1.0)
+Requirement already satisfied: fonttools>=4.22.0 in /usr/local/lib/python3.10/dist-packages (from matplotlib->dtale) (4.47.0)
+Requirement already satisfied: kiwisolver>=1.0.1 in /usr/local/lib/python3.10/dist-packages (from matplotlib->dtale) (1.4.5)
+Requirement already satisfied: pillow>=6.2.0 in /usr/local/lib/python3.10/dist-packages (from matplotlib->dtale) (9.4.0)
+Requirement already satisfied: pyparsing>=2.3.1 in /usr/local/lib/python3.10/dist-packages (from matplotlib->dtale) (3.1.1)
+Requirement already satisfied: python-dateutil>=2.7 in /usr/local/lib/python3.10/dist-packages (from matplotlib->dtale) (2.8.2)
+Requirement already satisfied: pytz>=2020.1 in /usr/local/lib/python3.10/dist-packages (from pandas->dtale) (2023.3.post1)
+Requirement already satisfied: charset-normalizer<4,>=2 in /usr/local/lib/python3.10/dist-packages (from requests->dtale) (3.3.2)
+Requirement already satisfied: idna<4,>=2.5 in /usr/local/lib/python3.10/dist-packages (from requests->dtale) (3.6)
+Requirement already satisfied: urllib3<3,>=1.21.1 in /usr/local/lib/python3.10/dist-packages (from requests->dtale) (2.0.7)
+Requirement already satisfied: joblib>=1.1.1 in /usr/local/lib/python3.10/dist-packages (from scikit-learn->dtale) (1.3.2)
+Requirement already satisfied: threadpoolctl>=2.0.0 in /usr/local/lib/python3.10/dist-packages (from scikit-learn->dtale) (3.2.0)
+Requirement already satisfied: patsy>=0.5.4 in /usr/local/lib/python3.10/dist-packages (from statsmodels->dtale) (0.5.4)
+Requirement already satisfied: zipp>=0.5 in /usr/local/lib/python3.10/dist-packages (from importlib-metadata->dash->dtale) (3.17.0)
+http://955a4e6b0d50:40000/dtale/main/1
+
+[ ]
+# install the sweetviz package
+!pip install sweetviz
+# load the sweetviz
+import sweetviz
+# use analyze
+analyze_df = sweetviz.analyze([df, "df"], target_feat = 'Sales')
+# then show
+analyze_df.show_html('analyze.html')
+
+
+[ ]
+# Install the autoviz package
+!pip install autoviz
+
+# Load the autoviz
+from autoviz.AutoViz_Class import AutoViz_Class
+
+# Create an instance of AutoViz_Class
+av = AutoViz_Class()
+
+# Produce AutoViz visualization of df
+report = av.AutoViz(
+    filename="",
+    sep=",",
+    depVar="",
+    dfte=df,
+    header=0,
+    verbose=1,
+    lowess=False,
+    chart_format="svg",  # Use "svg" for Jupyter notebooks
+    max_rows_analyzed=10000,
+    max_cols_analyzed=10,
+    save_plot_dir=None
+)
+
+
+DISTRIBUTION OF SALES
+
+[ ]
+# Assuming df is your DataFrame
+import plotly.express as px
+
+# Create a histogram for the 'Sales' variable
+fig = px.histogram(df, x='Sales', nbins=30, title='Distribution of Sales')
+fig.show()
+
+
+
+[ ]
+# Assuming df is your DataFrame
+import plotly.express as px
+
+# Create a colored plot for the distribution of 'Sales'
+fig = px.histogram(df, x='Sales', color='Sales', nbins=30, marginal='rug', title='Distribution of Sales')
+fig.show()
+
+
+
+[ ]
+# Assuming df is your DataFrame
+import plotly.express as px
+
+# Melt the DataFrame to create a long-format DataFrame
+df_melted = pd.melt(df, id_vars='Sales', value_vars=['TV', 'Radio', 'Newspaper'], var_name='Commodity')
+
+# Create a bar chart for each commodity with Sales
+fig = px.bar(df_melted, x='Sales', color='Sales', facet_col='Commodity', facet_col_wrap=1, title='Count Plot for Each Commodity with Sales')
+fig.update_layout(height=400, showlegend=False)
+fig.show()
+
+
+
+[ ]
+import seaborn as sns
+import matplotlib.pyplot as plt
+
+# Assuming df is your DataFrame
+plt.figure(figsize=(12, 8))
+
+# Iterate through each column and create a distribution plot
+for column in df.columns:
+    sns.histplot(df[column], kde=True, label=column)
+
+plt.title('Distribution Plot for Each Column')
+plt.legend()
+plt.show()
+
+
+
+[ ]
+import matplotlib.pyplot as plt
+import seaborn as sns
+
+plt.figure(figsize=(15, 5))
+
+columns = ["TV", "Radio", "Newspaper"]
+
+for i, col_name in enumerate(columns):
+    plt.subplot(1, 3, i + 1)
+    sns.distplot(df[col_name], hist=False, label=col_name)
+    sns.distplot(df["Sales"], hist=False, label="Sales")
+    plt.xlabel("{} VS Sales".format(col_name))
+    plt.title("Distribution plot {} VS Sales".format(col_name))
+    plt.legend()
+
+plt.tight_layout()
+plt.show()
+
+
+
+[ ]
+# Assuming df is your DataFrame
+import plotly.express as px
+
+# Melt the DataFrame to create a long-format DataFrame
+df_melted = pd.melt(df, var_name='Column', value_name='Value')
+
+# Create a distribution plot for each column
+fig = px.histogram(df_melted, x='Value', color='Column', marginal='rug',
+                   title='Distribution Plot for Each Column')
+fig.show()
+
+
+
+[ ]
+# Assuming df is your DataFrame
+plt.figure(figsize=(15, 5))
+
+# Scatter plot for Sales and TV
+plt.subplot(1, 3, 1)
+sns.scatterplot(x='TV', y='Sales', data=df)
+plt.title('Sales vs TV')
+
+# Scatter plot for Sales and Radio
+plt.subplot(1, 3, 2)
+sns.scatterplot(x='Radio', y='Sales', data=df)
+plt.title('Sales vs Radio')
+
+# Scatter plot for Sales and Newspaper
+plt.subplot(1, 3, 3)
+sns.scatterplot(x='Newspaper', y='Sales', data=df)
+plt.title('Sales vs Newspaper')
+
+plt.tight_layout()
+plt.show()
+
+
+
+[ ]
+import plotly.express as px
+
+# Assuming df is your DataFrame
+fig = px.scatter(df, x='TV', y='Sales', title='Sales vs TV')
+fig.show()
+
+fig = px.scatter(df, x='Radio', y='Sales', title='Sales vs Radio')
+fig.show()
+
+fig = px.scatter(df, x='Newspaper', y='Sales', title='Sales vs Newspaper')
+fig.show()
+
+
+Count of items and Sales
+
+
+[ ]
+# Assuming df is your DataFrame
+count_sales_df = df.groupby(['TV', 'Radio', 'Newspaper']).size().reset_index(name='Count')
+
+# Display the DataFrame
+count_sales_df
+
+
+
+[ ]
+import seaborn as sns
+import matplotlib.pyplot as plt
+
+# Set a color palette for better visibility
+sns.set_palette("pastel")
+
+# Set the style for a white background with grid lines
+sns.set_style("whitegrid")
+
+# Assuming count_sales_df is your DataFrame
+plt.figure(figsize=(15, 5))
+
+# Bar plot for counts of TV
+plt.subplot(1, 3, 1)
+sns.countplot(x='TV', data=count_sales_df)
+plt.title('Count of TV and Sales')
+
+# Bar plot for counts of Radio
+plt.subplot(1, 3, 2)
+sns.countplot(x='Radio', data=count_sales_df)
+plt.title('Count of Radio and Sales')
+
+# Bar plot for counts of Newspaper
+plt.subplot(1, 3, 3)
+sns.countplot(x='Newspaper', data=count_sales_df)
+plt.title('Count of Newspaper and Sales')
+
+# Adjust layout for better presentation
+plt.tight_layout()
+
+# Show the plots
+plt.show()
+
+
+
+[ ]
+import plotly.express as px
+
+# Assuming df is your DataFrame
+count_sales_df = df.groupby(['TV', 'Radio', 'Newspaper']).size().reset_index(name='Count')
+
+# Bar plot for counts of TV and Sales
+fig_tv = px.bar(count_sales_df, x='TV', y='Count', color='Count', title='Count of TV and Sales')
+
+# Bar plot for counts of Radio and Sales
+fig_radio = px.bar(count_sales_df, x='Radio', y='Count', color='Count', title='Count of Radio and Sales')
+
+# Bar plot for counts of Newspaper and Sales
+fig_newspaper = px.bar(count_sales_df, x='Newspaper', y='Count', color='Count', title='Count of Newspaper and Sales')
+
+# Show the plots
+fig_tv.show()
+fig_radio.show()
+fig_newspaper.show()
+
+
+
+[ ]
+import plotly.express as px
+
+# Assuming df is your DataFrame
+fig = px.sunburst(count_sales_df, path=['TV', 'Radio', 'Newspaper'], values='Count',
+                  title='Sunburst Plot of TV, Radio, and Newspaper Counts',
+                  color='Count')
+
+# Show the plot
+fig.show()
+
+
+
+[ ]
+df.columns
+Index(['TV', 'Radio', 'Newspaper', 'Sales'], dtype='object')
+
+[ ]
+import plotly.express as px
+import pandas as pd
+
+# Assuming df is your DataFrame
+# Convert 'Sales' column to numeric and handle invalid values
+df['Sales'] = pd.to_numeric(df['Sales'], errors='coerce')
+
+# Remove rows with NaN or negative values in 'Sales'
+df = df[(df['Sales'].notna()) & (df['Sales'] >= 0)]
+
+# Create an interactive 3D scatter plot using Plotly
+fig = px.scatter_3d(df, x='TV', y='Radio', z='Newspaper', color='Sales', size='Sales',
+                    symbol='Sales', opacity=0.7, title='Interactive 3D Scatter Plot with Sales')
+
+# Show the plot
+fig.show()
+
+
+
+[ ]
+import bokeh
+print(bokeh.__version__)
+
+2.4.3
+
+[ ]
+from bokeh.plotting import figure, show
+from bokeh.models import HoverTool
+
+
+[ ]
+from bokeh.plotting import figure, show
+from bokeh.models import HoverTool
+from bokeh.io import output_notebook
+
+# Enable notebook output
+output_notebook()
+
+# Assuming df is your DataFrame
+p = figure(title="Interactive Scatter Plot", tools="pan,box_zoom,reset,save", width=600, height=400)
+p.scatter(x=df['TV'], y=df['Sales'], size=8, color="navy", alpha=0.5)
+
+hover = HoverTool()
+hover.tooltips = [("TV", "@TV"), ("Sales", "@Sales")]
+p.add_tools(hover)
+
+show(p)
+
+
+
+[ ]
+from bokeh.plotting import figure, show
+from bokeh.models import HoverTool
+from bokeh.io import output_notebook
+
+# Enable notebook output
+output_notebook()
+
+# Assuming df is your DataFrame
+p = figure(title="Interactive Line Plot", tools="pan,box_zoom,reset,save", width=600, height=400)
+
+p.line(x=df.index, y=df['Sales'], line_width=2)
+
+hover = HoverTool()
+hover.tooltips = [("Index", "@index"), ("Sales", "@Sales")]
+p.add_tools(hover)
+
+show(p)
+
+
+
+[ ]
+from bokeh.plotting import figure, show
+from bokeh.models import HoverTool
+from bokeh.io import output_notebook
+
+# Enable notebook output
+output_notebook()
+
+# Assuming df is your DataFrame
+p = figure(title="Interactive Line Plot", tools="pan,box_zoom,reset,save", width=600, height=400, x_axis_label="Index", y_axis_label="Sales")
+
+p.line(x=df.index, y=df['Sales'], line_width=2)
+
+hover = HoverTool()
+hover.tooltips = [("Index", "@index"), ("Sales", "@Sales")]
+p.add_tools(hover)
+
+show(p)
+
+
+
+[ ]
+# Create a Bokeh figure
+p = figure(title="Line + Scatter Plot", tools="pan,box_zoom,reset,save", width=600, height=400, x_axis_label="Index", y_axis_label="Values")
+
+# Plot each column with a line and scatter points
+for column in df.columns:
+    p.line(df.index, df[column], line_width=2, legend_label=f"{column} (Line)")
+    p.scatter(df.index, df[column], size=8, legend_label=f"{column} (Scatter)")
+
+# Customize legend
+p.legend.title = 'Data'
+p.legend.label_text_font_size = '10pt'
+
+# Show the plot
+show(p)
+
+
+[ ]
+df.columns
+Index(['TV', 'Radio', 'Newspaper', 'Sales'], dtype='object')
+
+[ ]
+df.head()
+
+USING STANDARD SCALER TO SCALE THE DATASET
+
+The Standard Scaler is a preprocessing technique in machine learning used for feature scaling or normalization. Scaling is crucial in scenarios where the features in a dataset have different scales, as it ensures that each feature contributes proportionally to the distance computations during modeling.
+
+
+[ ]
+from sklearn.preprocessing import StandardScaler
+scaler = StandardScaler()
+scaler_columns = ['TV','Radio','Newspaper','Sales']
+df[scaler_columns] = scaler.fit_transform(df[scaler_columns])
+
+[ ]
+df.head()
+
+SPLI DATA INTO X AND Y
+
+
+[ ]
+x=df.drop(['Sales'],axis = 1)
+y = df['Sales']
+
+[ ]
+# Display the first few rows of X and y
+print("Features (X):")
+print(x.head(), x.shape)
+
+print("\nTarget Variable (y):")
+print(y.head(), y.shape)
+Features (X):
+      TV       Radio   Newspaper
+0  0.978697  0.989521  1.932998 
+1 -1.199012  1.090705  0.751313 
+2 -1.519332  1.535913  1.937901 
+3  0.056456  1.225616  1.408349 
+4  0.400243 -0.831784  1.403446  (198, 3)
+
+Target Variable (y):
+0    1.566517
+1   -0.690881
+2   -0.903115
+3    0.871933
+4   -0.208531
+Name: Sales, dtype: float64 (198,)
+Model Training
+
+
+[ ]
+from sklearn.model_selection import train_test_split
+
+[ ]
+x_train, x_test, y_train, y_test = train_test_split(x, y, random_state=101)
+
+[ ]
+from sklearn.linear_model import LinearRegression
+from sklearn.pipeline import Pipeline
+from sklearn.metrics import r2_score, mean_absolute_error
+from sklearn.linear_model import Ridge, Lasso
+from sklearn.neighbors import KNeighborsRegressor
+from sklearn.tree import DecisionTreeRegressor
+from sklearn.ensemble import RandomForestRegressor, GradientBoostingRegressor, AdaBoostRegressor
+from sklearn.ensemble import ExtraTreesRegressor
+from sklearn.svm import SVR
+from xgboost import XGBRegressor
+
+[ ]
+from sklearn.ensemble import VotingRegressor, StackingRegressor
+LINEAR REGRESSION
+
+
+[ ]
+# Linear Regression
+lr = LinearRegression()
+lr.fit(x_train, y_train)
+y_pred_lr = lr.predict(x_test)
+print("R2_Score :", r2_score(y_test, y_pred_lr))
+print("*****************************")
+print("MAE :", mean_absolute_error(y_test, y_pred_lr))
+R2_Score : 0.8875849003193558
+*****************************
+MAE : 0.2597116111453679
+
+[ ]
+#  Ridge
+ridge = Ridge(alpha=10)
+ridge.fit(x_train, y_train)
+y_pred_ridge = ridge.predict(x_test)
+print("R2_Score :", r2_score(y_test, y_pred_ridge))
+print("*****************************")
+print("MAE :", mean_absolute_error(y_test, y_pred_ridge))
+R2_Score : 0.8848772262884965
+*****************************
+MAE : 0.2634124762930899
+
+[ ]
+#  Lasso
+Lasso = Lasso(alpha=0.001)
+Lasso.fit(x_train, y_train)
+y_pred_Lasso = Lasso.predict(x_test)
+print("R2_Score :", r2_score(y_test, y_pred_Lasso))
+print("*****************************")
+print("MAE :", mean_absolute_error(y_test, y_pred_Lasso))
+R2_Score : 0.8875966684512021
+*****************************
+MAE : 0.25981097220802873
+
+[ ]
+# RandomForest Regression
+rf = RandomForestRegressor()
+rf.fit(x_train, y_train)
+y_pred_rf = rf.predict(x_test)
+print("R2_Score :", r2_score(y_test, y_pred_rf))
+print("*****************************")
+print("MAE :", mean_absolute_error(y_test, y_pred_rf))
+R2_Score : 0.975955895176451
+*****************************
+MAE : 0.11760077151025168
+
+[ ]
+# KNN
+knn = KNeighborsRegressor()
+knn.fit(x_train, y_train)
+y_pred_knn = knn.predict(x_test)
+print("R2_Score :", r2_score(y_test, y_pred_knn))
+print("*****************************")
+print("MAE :", mean_absolute_error(y_test, y_pred_knn))
+R2_Score : 0.9241382884372977
+*****************************
+MAE : 0.18931270016711335
+
+[ ]
+# DecisionTreeRegressor
+dt = DecisionTreeRegressor()
+dt.fit(x_train, y_train)
+y_pred_dt = dt.predict(x_test)
+print("R2_Score :", r2_score(y_test, y_pred_dt))
+print("*****************************")
+print("MAE :", mean_absolute_error(y_test, y_pred_dt))
+R2_Score : 0.9600773565220845
+*****************************
+MAE : 0.1520366976474575
+
+[ ]
+# SVR
+svr = SVR(kernel='rbf', C=10000,epsilon=0.1)
+svr.fit(x_train, y_train)
+y_pred_svr = svr.predict(x_test)
+print("R2_Score :", r2_score(y_test, y_pred_svr))
+print("*****************************")
+print("MAE :", mean_absolute_error(y_test, y_pred_svr))
+R2_Score : 0.9879548690954663
+*****************************
+MAE : 0.07786747197722585
+
+[ ]
+# GradientBoostingRegressor
+gdb = GradientBoostingRegressor()
+gdb.fit(x_train, y_train)
+y_pred_gdb = gdb.predict(x_test)
+print("R2_Score :", r2_score(y_test, y_pred_gdb))
+print("*****************************")
+print("MAE :", mean_absolute_error(y_test, y_pred_gdb))
+R2_Score : 0.9795451722670796
+*****************************
+MAE : 0.10436138103942608
+
+[ ]
+# AdaBoostRegressor
+ada = AdaBoostRegressor()
+ada.fit(x_train, y_train)
+y_pred_ada = ada.predict(x_test)
+print("R2_Score :", r2_score(y_test, y_pred_ada))
+print("*****************************")
+print("MAE :", mean_absolute_error(y_test, y_pred_ada))
+R2_Score : 0.9523971322862466
+*****************************
+MAE : 0.15943873906730985
+
+[ ]
+# ExtraTreesRegressor
+eta = ExtraTreesRegressor()
+eta.fit(x_train, y_train)
+y_pred_eta = eta.predict(x_test)
+print("R2_Score :", r2_score(y_test, y_pred_eta))
+print("*****************************")
+print("MAE :", mean_absolute_error(y_test, y_pred_eta))
+R2_Score : 0.9921057495433644
+*****************************
+MAE : 0.06528316880202237
+
+[ ]
+# XGBRegressor
+xbr = XGBRegressor()
+xbr.fit(x_train, y_train)
+y_pred_xbr = xbr.predict(x_test)
+print("R2_Score :", r2_score(y_test, y_pred_xbr))
+print("*****************************")
+print("MAE :", mean_absolute_error(y_test, y_pred_xbr))
+R2_Score : 0.9767345556377104
+*****************************
+MAE : 0.11765711151759856
+VOTING AND STACKING CLASSIFIERS
+
+
+[ ]
+voting = VotingRegressor([('ridge' , ridge),('Lasso', Lasso),('RF', rf),
+                         ('DT', dt),('KNN', knn), ('SVR', svr),('GBR', gdb),
+                         ('ADA', ada), ('ETR', eta),('XGB', xbr)], weights=[1,1,1,1,1,1,1,1,1,1])
+
+voting.fit(x_train, y_train)
+y_pred_voting = voting.predict(x_test)
+print("R2_Score :", r2_score(y_test, y_pred_voting))
+print("*****************************")
+print("MAE :", mean_absolute_error(y_test, y_pred_voting))
+R2_Score : 0.9834594071840569
+*****************************
+MAE : 0.0905596967680735
+
+[ ]
+# Stacking
+classifier = [('ridge' , ridge),('Lasso', Lasso),('RF', rf),
+                         ('DT', dt),('KNN', knn), ('SVR', svr),('GBR', gdb),
+                         ('ADA', ada), ('ETR', eta),('XGB', xbr)]
+
+stacking = StackingRegressor(estimators=classifier,final_estimator=Ridge(alpha=10))
+stacking.fit(x_train, y_train)
+y_pred_stack = stacking.predict(x_test)
+
+print("R2_Score :", r2_score(y_test, y_pred_stack))
+print("*****************************")
+print("MAE :", mean_absolute_error(y_test, y_pred_stack))
+R2_Score : 0.987866969258776
+*****************************
+MAE : 0.08809383751920119
+H20 AUTOML
+
+[ ]
+!pip install h2o
+
+Requirement already satisfied: h2o in /usr/local/lib/python3.10/dist-packages (3.44.0.3)
+Requirement already satisfied: requests in /usr/local/lib/python3.10/dist-packages (from h2o) (2.31.0)
+Requirement already satisfied: tabulate in /usr/local/lib/python3.10/dist-packages (from h2o) (0.9.0)
+Requirement already satisfied: charset-normalizer<4,>=2 in /usr/local/lib/python3.10/dist-packages (from requests->h2o) (3.3.2)
+Requirement already satisfied: idna<4,>=2.5 in /usr/local/lib/python3.10/dist-packages (from requests->h2o) (3.6)
+Requirement already satisfied: urllib3<3,>=1.21.1 in /usr/local/lib/python3.10/dist-packages (from requests->h2o) (2.0.7)
+Requirement already satisfied: certifi>=2017.4.17 in /usr/local/lib/python3.10/dist-packages (from requests->h2o) (2023.11.17)
+
+[ ]
+import h2o
+from h2o.automl import H2OAutoML
+
+[ ]
+# Start H2O
+h2o.init()
+
+
+
+[ ]
+# Convert DataFrame to H2OFrame
+h2o_df = h2o.H2OFrame(df)
+Parse progress: |████████████████████████████████████████████████████████████████| (done) 100%
+
+[ ]
+
+# Identify predictors and response
+x = h2o_df.columns[:-1]
+y = "Sales"
+
+
+[ ]
+x
+['TV', 'Radio', 'Newspaper']
+
+[ ]
+y
+
+
+[ ]
+# Split the data into training and test sets
+train, test = h2o_df.split_frame(ratios=[0.8], seed=42)
+
+
+[ ]
+# Run AutoML
+aml = H2OAutoML(max_runtime_secs=60, seed=42)
+aml.train(x=x, y=y, training_frame=train)
+
+
+[ ]
+# View the AutoML leaderboard
+lb = aml.leaderboard
+print(lb)
+model_id                                                    rmse        mse        mae    rmsle    mean_residual_deviance
+StackedEnsemble_BestOfFamily_4_AutoML_1_20240103_63014  0.143742  0.0206616  0.0960846      nan                 0.0206616
+GBM_grid_1_AutoML_1_20240103_63014_model_8              0.152033  0.0231139  0.112194       nan                 0.0231139
+GBM_grid_1_AutoML_1_20240103_63014_model_1              0.154363  0.0238279  0.11129        nan                 0.0238279
+GBM_grid_1_AutoML_1_20240103_63014_model_2              0.167481  0.0280499  0.111211       nan                 0.0280499
+StackedEnsemble_BestOfFamily_3_AutoML_1_20240103_63014  0.19697   0.0387972  0.143574       nan                 0.0387972
+StackedEnsemble_BestOfFamily_2_AutoML_1_20240103_63014  0.20126   0.0405056  0.148325       nan                 0.0405056
+StackedEnsemble_AllModels_1_AutoML_1_20240103_63014     0.202253  0.0409061  0.147912       nan                 0.0409061
+StackedEnsemble_AllModels_3_AutoML_1_20240103_63014     0.210169  0.044171   0.136485       nan                 0.044171
+GBM_3_AutoML_1_20240103_63014                           0.213747  0.0456878  0.152388       nan                 0.0456878
+GBM_4_AutoML_1_20240103_63014                           0.217213  0.0471815  0.152335       nan                 0.0471815
+[35 rows x 6 columns]
+
+
+[ ]
+
+# Get the best model
+best_model = aml.leader
+print(best_model)
+Model Details
+=============
+H2OStackedEnsembleEstimator : Stacked Ensemble
+Model Key: StackedEnsemble_BestOfFamily_4_AutoML_1_20240103_63014
+
+
+Model Summary for Stacked Ensemble: 
+key                                        value
+-----------------------------------------  ----------------
+Stacking strategy                          cross_validation
+Number of base models (used / total)       6/6
+# GBM base models (used / total)           1/1
+# XGBoost base models (used / total)       1/1
+# DeepLearning base models (used / total)  1/1
+# DRF base models (used / total)           2/2
+# GLM base models (used / total)           1/1
+Metalearner algorithm                      GLM
+Metalearner fold assignment scheme         Random
+Metalearner nfolds                         5
+Metalearner fold_column
+Custom metalearner hyperparameters         None
+
+ModelMetricsRegressionGLM: stackedensemble
+** Reported on train data. **
+
+MSE: 0.005625147075477626
+RMSE: 0.07500098049677502
+MAE: 0.0554950204810629
+RMSLE: NaN
+Mean Residual Deviance: 0.005625147075477626
+R^2: 0.9942868790294559
+Null degrees of freedom: 160
+Residual degrees of freedom: 154
+Null deviance: 158.5208301769332
+Residual deviance: 0.9056486791518978
+AIC: -361.1636100096806
+
+ModelMetricsRegressionGLM: stackedensemble
+** Reported on cross-validation data. **
+
+MSE: 0.020661629442339253
+RMSE: 0.1437415369416205
+MAE: 0.09608462659926396
+RMSLE: NaN
+Mean Residual Deviance: 0.020661629442339253
+R^2: 0.9790152351807411
+Null degrees of freedom: 160
+Residual degrees of freedom: 156
+Null deviance: 160.38386649777456
+Residual deviance: 3.3265223402166195
+AIC: -155.69758109303285
+
+Cross-Validation Metrics Summary: 
+                        mean       sd         cv_1_valid    cv_2_valid    cv_3_valid    cv_4_valid    cv_5_valid
+----------------------  ---------  ---------  ------------  ------------  ------------  ------------  ------------
+mae                     0.0946017  0.0280614  0.136081      0.104716      0.0654638     0.093999      0.072749
+mean_residual_deviance  0.021476   0.0205715  0.0574803     0.0191705     0.00863404    0.0131337     0.00896166
+mse                     0.021476   0.0205715  0.0574803     0.0191705     0.00863404    0.0131337     0.00896166
+null_deviance           32.0768    11.7602    29.7952       48.7663       24.6695       38.3256       18.8273
+r2                      0.978352   0.0191074  0.94458       0.982299      0.989618      0.986044      0.989221
+residual_deviance       0.663383   0.534144   1.49449       0.862672      0.250387      0.512212      0.197157
+rmse                    0.136079   0.0608122  0.239751      0.138458      0.0929195     0.114602      0.0946661
+rmsle                   nan        0          nan           nan           nan           nan           nan
+
+[ ]
+# Make predictions on the test set
+predictions = best_model.predict(test)
+print(predictions)
+stackedensemble prediction progress: |███████████████████████████████████████████| (done) 100%
+  predict
+-1.05792
+ 0.905038
+ 0.326707
+-0.901765
+-1.0161
+ 0.553296
+-0.843183
+ 1.62586
+ 1.51333
+ 1.69829
+[37 rows x 1 column]
+
+
+[ ]
+# Make predictions on the Train set
+predictions2 = best_model.predict(train)
+print(predictions2)
+stackedensemble prediction progress: |███████████████████████████████████████████| (done) 100%
+  predict
+ 1.58724
+-0.641904
+-0.847101
+ 0.900653
+-0.169043
+-1.16678
+-0.438942
+-0.203619
+-1.87583
+-0.565048
+[161 rows x 1 column]
+
+
+[ ]
+# Convert H2OFrame to pandas DataFrame(test)
+predictions_df = h2o.as_list(predictions)
+print(predictions_df)
+Export File progress: |██████████████████████████████████████████████████████████| (done) 100%
+     predict
+0  -1.057915
+1   0.905038
+2   0.326707
+3  -0.901765
+4  -1.016096
+5   0.553296
+6  -0.843183
+7   1.625857
+8   1.513331
+9   1.698294
+10  1.081600
+11 -0.896466
+12 -0.863508
+13 -0.556336
+14 -0.234240
+15 -0.550354
+16 -1.485239
+17 -0.351884
+18 -0.207091
+19  0.262761
+20 -0.515286
+21 -1.508154
+22 -0.365587
+23 -0.297045
+24  1.108316
+25 -0.901417
+26 -0.595126
+27  2.001693
+28 -0.560885
+29  0.495424
+30  2.292040
+31 -0.366817
+32 -0.625775
+33  0.779360
+34 -1.567558
+35 -0.555372
+36  0.558498
+
+[ ]
+# Convert H2OFrame to pandas DataFrame(train)
+predictions_df2 = h2o.as_list(predictions2)
+print(predictions_df2)
+Export File progress: |██████████████████████████████████████████████████████████| (done) 100%
+      predict
+0    1.587241
+1   -0.641904
+2   -0.847101
+3    0.900653
+4   -0.169043
+5   -1.166781
+6   -0.438942
+7   -0.203619
+8   -1.875833
+9   -0.565048
+10   0.671993
+11  -0.890870
+12  -0.872307
+13   1.659312
+14   2.059426
+15  -0.595263
+16   0.101012
+17   0.836624
+18  -0.206620
+19  -1.620391
+20  -0.239049
+21   0.255851
+22   0.426916
+23   1.034080
+24  -0.750334
+25   1.493460
+26  -0.411042
+27  -0.977603
+28  -0.063268
+29   2.206146
+30   0.179602
+31  -0.801148
+32   1.495094
+33   0.544910
+34   0.670313
+35   1.385503
+36  -0.170919
+37  -1.057969
+38   0.200380
+39   0.246155
+40  -0.900458
+41  -0.503447
+42  -0.720285
+43   1.455462
+44   1.266381
+45  -1.594805
+46  -0.157775
+47   1.848273
+48   0.888877
+49  -1.270120
+50   2.033816
+51   0.388548
+52  -0.055853
+53   0.771756
+54  -0.950629
+55  -0.916424
+56  -0.210159
+57   1.646863
+58   0.868842
+59  -0.407356
+60  -0.617866
+61   0.634206
+62  -1.499909
+63   0.069491
+64  -1.708164
+65  -0.456281
+66  -0.545383
+67  -0.039519
+68   1.575613
+69   0.258149
+70  -0.390860
+71   0.416929
+72  -0.287589
+73   0.600265
+74   1.086786
+75   1.621842
+76  -0.506643
+77   0.579872
+78   0.306516
+79   2.264720
+80   0.657780
+81  -0.363042
+82   0.273356
+83   0.175948
+84   1.328922
+85   0.973577
+86  -1.406759
+87  -1.084679
+88  -1.766002
+89   1.146139
+90   1.550114
+91   0.040490
+92   0.416787
+93   0.152858
+94  -0.249733
+95  -0.328644
+96  -1.066444
+97   0.399442
+98  -1.469239
+99  -1.357223
+100  0.237464
+101  1.176588
+102 -0.743456
+103 -1.100539
+104  1.996117
+105 -0.936356
+106 -1.891110
+107 -1.655465
+108  1.152843
+109 -0.623640
+110 -0.821489
+111  1.398157
+112 -0.838888
+113  1.343931
+114 -0.674586
+115  1.022362
+116 -0.757239
+117 -0.080945
+118 -0.551269
+119 -0.801636
+120  0.495735
+121  0.959766
+122  0.346522
+123 -1.991613
+124  0.240465
+125 -0.773551
+126 -1.241990
+127 -0.224513
+128  0.074856
+129 -0.120291
+130  0.192847
+131  0.784573
+132 -0.414988
+133 -0.311010
+134 -1.072471
+135 -0.316843
+136  0.625246
+137  0.322434
+138 -1.144520
+139  0.114523
+140 -1.300898
+141 -0.439255
+142 -0.383117
+143  1.233923
+144 -0.411473
+145 -0.301174
+146 -0.289099
+147 -1.143907
+148  2.329383
+149  0.744661
+150  1.656388
+151 -0.763475
+152  0.488869
+153 -0.881093
+154 -1.663165
+155  1.070527
+156 -1.340546
+157 -0.933992
+158 -0.231895
+159  2.264147
+160 -0.050174
+
+[ ]
+# Display the model performance
+performance = best_model.model_performance(test)
+print(performance)
+ModelMetricsRegressionGLM: stackedensemble
+** Reported on test data. **
+
+MSE: 0.014930150629159861
+RMSE: 0.12218899553216674
+MAE: 0.10646139753424408
+RMSLE: NaN
+Mean Residual Deviance: 0.014930150629159861
+R^2: 0.986007128984364
+Null degrees of freedom: 36
+Residual degrees of freedom: 30
+Null deviance: 39.479356753857545
+Residual deviance: 0.5524155732789149
+AIC: -34.56033394571953
+
+[ ]
+# Display the model train performance
+performance2 = best_model.model_performance(train)
+print(performance2)
+ModelMetricsRegressionGLM: stackedensemble
+** Reported on test data. **
+
+MSE: 0.005625147075477626
+RMSE: 0.07500098049677502
+MAE: 0.0554950204810629
+RMSLE: NaN
+Mean Residual Deviance: 0.005625147075477626
+R^2: 0.9942868790294559
+Null degrees of freedom: 160
+Residual degrees of freedom: 154
+Null deviance: 158.5208301769332
+Residual deviance: 0.9056486791518978
+AIC: -361.1636100096806
+
+[ ]
+import matplotlib.pyplot as plt
+
+# Check if variable importances are available
+if hasattr(best_model, 'varimp') and best_model.varimp() is not None:
+    # Example for the chosen model
+    feature_importance = best_model.varimp(use_pandas=True)
+
+    # Assuming 'TV' is the feature you want to plot against 'Sales'
+    feature_importance.plot(kind='bar', x='variable', y='scaled_importance', legend=False)
+    plt.xlabel('Feature')
+    plt.ylabel('Scaled Importance')
+    plt.title('Feature Importance for TV in Sales Prediction')
+    plt.show()
+else:
+    print("Variable importances not available for this model.")
+
+Warning: This model doesn't have variable importances
+Variable importances not available for this model.
+
+[ ]
+# Get the leaderboard summary
+aml.leaderboard.head(rows=aml.leaderboard.nrows)
+
+
+
+[ ]
+# Get the best model summary
+best_model.summary()
+
+
+
+[ ]
+# Assuming 'performance' is your H2O performance object
+mse = performance.mse()
+rmse = performance.rmse()
+r_squared = performance.r2()
+
+print("Mean Squared Error:", mse)
+print("Root Mean Squared Error:", rmse)
+print("R-squared:", r_squared)
+
+Mean Squared Error: 0.014930150629159861
+Root Mean Squared Error: 0.12218899553216674
+R-squared: 0.986007128984364
+
+[ ]
+# Shutdown H2O
+h2o.shutdown()
+H2O session _sid_8353 closed.
+Different Stats Model
+
+
+[ ]
+import statsmodels.api as sm
+import pandas as pd
+
+# Assuming df is your DataFrame with columns TV, RADIO, NEWSPAPER, and SALES
+
+# Define the independent variables (features)
+X = df[['TV', 'Radio', 'Newspaper']]
+
+# Add a constant term to the independent variables (required for the intercept)
+X = sm.add_constant(X)
+
+# Define the dependent variable
+y = df['Sales']
+
+# Create and fit the linear regression model
+model = sm.OLS(y, X).fit()
+
+# Print the summary of the regression
+print(model.summary())
+
+                            OLS Regression Results                            
+==============================================================================
+Dep. Variable:                  Sales   R-squared:                       0.895
+Model:                            OLS   Adj. R-squared:                  0.894
+Method:                 Least Squares   F-statistic:                     553.5
+Date:                Wed, 03 Jan 2024   Prob (F-statistic):           8.35e-95
+Time:                        06:31:19   Log-Likelihood:                -57.454
+No. Observations:                 198   AIC:                             122.9
+Df Residuals:                     194   BIC:                             136.1
+Df Model:                           3                                         
+Covariance Type:            nonrobust                                         
+==============================================================================
+                 coef    std err          t      P>|t|      [0.025      0.975]
+------------------------------------------------------------------------------
+const       1.579e-16      0.023    6.8e-15      1.000      -0.046       0.046
+TV             0.7513      0.023     32.293      0.000       0.705       0.797
+Radio          0.5393      0.025     21.772      0.000       0.490       0.588
+Newspaper     -0.0046      0.025     -0.187      0.852      -0.053       0.044
+==============================================================================
+Omnibus:                       59.593   Durbin-Watson:                   2.041
+Prob(Omnibus):                  0.000   Jarque-Bera (JB):              147.654
+Skew:                          -1.324   Prob(JB):                     8.66e-33
+Kurtosis:                       6.299   Cond. No.                         1.44
+==============================================================================
+
+Notes:
+[1] Standard Errors assume that the covariance matrix of the errors is correctly specified.
+
+[ ]
+import statsmodels.api as sm
+from statsmodels.formula.api import ols
+
+# Assuming df is your DataFrame with columns 'TV', 'Radio', 'Newspaper', and 'Sales'
+
+# Create a linear regression model
+formula = 'Sales ~ TV + Radio + Newspaper'
+model = ols(formula, data=df).fit()
+
+# Print the summary of the regression
+print(model.summary())
+
+                            OLS Regression Results                            
+==============================================================================
+Dep. Variable:                  Sales   R-squared:                       0.895
+Model:                            OLS   Adj. R-squared:                  0.894
+Method:                 Least Squares   F-statistic:                     553.5
+Date:                Wed, 03 Jan 2024   Prob (F-statistic):           8.35e-95
+Time:                        06:31:19   Log-Likelihood:                -57.454
+No. Observations:                 198   AIC:                             122.9
+Df Residuals:                     194   BIC:                             136.1
+Df Model:                           3                                         
+Covariance Type:            nonrobust                                         
+==============================================================================
+                 coef    std err          t      P>|t|      [0.025      0.975]
+------------------------------------------------------------------------------
+Intercept   1.579e-16      0.023    6.8e-15      1.000      -0.046       0.046
+TV             0.7513      0.023     32.293      0.000       0.705       0.797
+Radio          0.5393      0.025     21.772      0.000       0.490       0.588
+Newspaper     -0.0046      0.025     -0.187      0.852      -0.053       0.044
+==============================================================================
+Omnibus:                       59.593   Durbin-Watson:                   2.041
+Prob(Omnibus):                  0.000   Jarque-Bera (JB):              147.654
+Skew:                          -1.324   Prob(JB):                     8.66e-33
+Kurtosis:                       6.299   Cond. No.                         1.44
+==============================================================================
+
+Notes:
+[1] Standard Errors assume that the covariance matrix of the errors is correctly specified.
+
+[ ]
+%matplotlib inline
+import matplotlib.pyplot as plt
+import seaborn as sns
+
+[ ]
+from statsmodels.graphics.tsaplots import plot_acf, plot_pacf
+import matplotlib.pyplot as plt
+
+# Assuming df is your DataFrame with a time-based index and a 'Sales' column
+# You may need to ensure that the index is in datetime format. If not, you can convert it using df['Date'] = pd.to_datetime(df['Date'])
+
+# Plot ACF and PACF
+fig, (ax1, ax2) = plt.subplots(2, 1, figsize=(12, 8))
+
+# ACF plot
+plot_acf(df['Sales'], lags=20, ax=ax1)
+ax1.set_title('Autocorrelation Function (ACF)')
+
+# PACF plot
+plot_pacf(df['Sales'], lags=20, ax=ax2)
+ax2.set_title('Partial Autocorrelation Function (PACF)')
+
+plt.show()
+
+
+
+[ ]
+!pip install pmdarima
+
+Requirement already satisfied: pmdarima in /usr/local/lib/python3.10/dist-packages (2.0.4)
+Requirement already satisfied: joblib>=0.11 in /usr/local/lib/python3.10/dist-packages (from pmdarima) (1.3.2)
+Requirement already satisfied: Cython!=0.29.18,!=0.29.31,>=0.29 in /usr/local/lib/python3.10/dist-packages (from pmdarima) (3.0.7)
+Requirement already satisfied: numpy>=1.21.2 in /usr/local/lib/python3.10/dist-packages (from pmdarima) (1.23.5)
+Requirement already satisfied: pandas>=0.19 in /usr/local/lib/python3.10/dist-packages (from pmdarima) (1.5.3)
+Requirement already satisfied: scikit-learn>=0.22 in /usr/local/lib/python3.10/dist-packages (from pmdarima) (1.2.2)
+Requirement already satisfied: scipy>=1.3.2 in /usr/local/lib/python3.10/dist-packages (from pmdarima) (1.11.4)
+Requirement already satisfied: statsmodels>=0.13.2 in /usr/local/lib/python3.10/dist-packages (from pmdarima) (0.14.1)
+Requirement already satisfied: urllib3 in /usr/local/lib/python3.10/dist-packages (from pmdarima) (2.0.7)
+Requirement already satisfied: setuptools!=50.0.0,>=38.6.0 in /usr/local/lib/python3.10/dist-packages (from pmdarima) (67.7.2)
+Requirement already satisfied: packaging>=17.1 in /usr/local/lib/python3.10/dist-packages (from pmdarima) (23.2)
+Requirement already satisfied: python-dateutil>=2.8.1 in /usr/local/lib/python3.10/dist-packages (from pandas>=0.19->pmdarima) (2.8.2)
+Requirement already satisfied: pytz>=2020.1 in /usr/local/lib/python3.10/dist-packages (from pandas>=0.19->pmdarima) (2023.3.post1)
+Requirement already satisfied: threadpoolctl>=2.0.0 in /usr/local/lib/python3.10/dist-packages (from scikit-learn>=0.22->pmdarima) (3.2.0)
+Requirement already satisfied: patsy>=0.5.4 in /usr/local/lib/python3.10/dist-packages (from statsmodels>=0.13.2->pmdarima) (0.5.4)
+Requirement already satisfied: six in /usr/local/lib/python3.10/dist-packages (from patsy>=0.5.4->statsmodels>=0.13.2->pmdarima) (1.16.0)
+The Partial Autocorrelation Function (PACF) is a statistical tool used in time series analysis to identify the relationship between a variable and its lags while controlling for the effects of intermediate lags. It is particularly useful in the context of the Autoregressive Integrated Moving Average (ARIMA) model. Here's a breakdown of its significance and how it is used:
+
+PACF (Partial Autocorrelation Function): Definition:
+
+The PACF at lag k measures the correlation between the series and its own lag, excluding the contributions from the intermediate lags (1 to k-1). Interpretation:
+
+The PACF helps to identify the direct relationship between the current value of a time series and its lagged values. Why it's Used:
+
+PACF is used to identify the order of the autoregressive (AR) component in the ARIMA model. It provides insights into the number of significant lags that should be included in the model. Calculating p, d, and q from ACF and PACF: Autocorrelation Function (ACF):
+
+Peaks in the ACF plot indicate the number of lag observations that are significantly correlated with the current observation. These peaks suggest the potential order of the moving average (MA) component (q) in the ARIMA model. Partial Autocorrelation Function (PACF):
+
+Significant spikes in the PACF plot indicate the direct relationship between the current observation and a specific lag. These spikes suggest the potential order of the autoregressive (AR) component (p) in the ARIMA model. Integrated Component (d):
+
+The differencing order (d) is determined by the number of times differencing is needed to make the series stationary. This can be identified by observing the trend and seasonality in the original time series or by examining the ACF plot. Significance of p, d, q in ARIMA Model: p (Autoregressive Order):
+
+Represents the number of lag observations included in the model. Determines the influence of past values on the current value. d (Integrated Order):
+
+Represents the number of differences needed to make the time series stationary. Eliminates trends and seasonality in the time series. q (Moving Average Order):
+
+Represents the order of the moving average component. Determines the influence of past white noise (random shocks) on the current value. In summary, p, d, and q are parameters that define the structure of the ARIMA model, allowing it to capture the temporal patterns and relationships in time series data. They are crucial for specifying the order of autoregressive, integrated, and moving average components in the model. The values of p, d, and q are determined through a combination of visual inspection of ACF and PACF plots, statistical tests, and iterative model fitting.
+
+Stationarity Tests:
+
+Check if the time series is stationary or if differencing (d) is required. Common tests include the Augmented Dickey-Fuller (ADF) test.
+
+
+[ ]
+from statsmodels.tsa.stattools import adfuller
+
+# Assuming df is your DataFrame with a 'Sales' column
+result = adfuller(df['Sales'])
+
+print('ADF Statistic:', result[0])
+print('p-value:', result[1])
+print('Critical Values:', result[4])
+
+ADF Statistic: -13.587699260280386
+p-value: 2.0651524640220136e-25
+Critical Values: {'1%': -3.463987334463603, '5%': -2.8763259091636213, '10%': -2.5746515171738515}
+The output you provided from the Augmented Dickey-Fuller (ADF) test includes the ADF Statistic, p-value, and Critical Values. Let's interpret the results:
+
+ADF Statistic: -13.587699260280388
+
+The ADF statistic is a negative value. More negative values indicate stronger evidence against the null hypothesis of non-stationarity. In this case, the large negative value suggests that the data is likely stationary. p-value: 2.0651524640219697e-25
+
+The p-value is very close to zero (2.07e-25), which is well below the typical significance level of 0.05. A low p-value provides evidence to reject the null hypothesis of non-stationarity. Critical Values:
+
+The critical values are used to compare with the ADF Statistic. If the ADF Statistic is more extreme than the critical values, you can reject the null hypothesis.
+
+At the 1% significance level, the critical value is -3.463987334463603.
+
+At the 5% significance level, the critical value is -2.8763259091636213.
+
+At the 10% significance level, the critical value is -2.5746515171738515.
+
+Interpretation:
+
+The ADF Statistic is more extreme (negative) than all the critical values. The p-value is very low, indicating strong evidence against the null hypothesis. Therefore, you can reject the null hypothesis of non-stationarity. Conclusion:
+
+The ADF test suggests that your 'Sales' data is likely stationary, which is a good indicator for applying time series models like ARIMA. This is a positive outcome, as stationarity is a prerequisite for ARIMA modeling. You can proceed with fitting your ARIMA model with the identified orders for p, d, and q.
+
+Iteration and Model Fitting:
+
+Based on ACF, PACF, and stationarity results, iterate to find the best values for p, d, and q. Fit ARIMA models with different combinations and select the one with the lowest AIC (Akaike Information Criterion).
+
+Iterating to find the best values for p, d, and q involves fitting ARIMA models with different combinations and selecting the one with the lowest AIC (Akaike Information Criterion). Here's an example using the pmdarima library, which can help automate this process:
+
+
+[ ]
+import pmdarima as pm
+
+# Assuming df is your DataFrame with a 'Sales' column
+auto_arima_model = pm.auto_arima(df['Sales'], seasonal=False, stepwise=True, suppress_warnings=True)
+
+# Get the best order (p, d, q)
+best_order = auto_arima_model.order
+print("Best Order (p, d, q):", best_order)
+
+# Fit ARIMA model with the best order
+best_model = pm.ARIMA(order=best_order)
+best_model.fit(df['Sales'])
+
+# Summary of the best model
+print(best_model.summary())
+
+Best Order (p, d, q): (0, 0, 0)
+                               SARIMAX Results                                
+==============================================================================
+Dep. Variable:                      y   No. Observations:                  198
+Model:                        SARIMAX   Log Likelihood                -280.950
+Date:                Wed, 03 Jan 2024   AIC                            565.900
+Time:                        06:31:36   BIC                            572.476
+Sample:                             0   HQIC                           568.562
+                                - 198                                         
+Covariance Type:                  opg                                         
+==============================================================================
+                 coef    std err          z      P>|z|      [0.025      0.975]
+------------------------------------------------------------------------------
+intercept   1.795e-16      0.075   2.39e-15      1.000      -0.147       0.147
+sigma2         1.0000      0.119      8.402      0.000       0.767       1.233
+===================================================================================
+Ljung-Box (L1) (Q):                   0.23   Jarque-Bera (JB):                 6.78
+Prob(Q):                              0.63   Prob(JB):                         0.03
+Heteroskedasticity (H):               0.89   Skew:                             0.40
+Prob(H) (two-sided):                  0.65   Kurtosis:                         2.59
+===================================================================================
+
+Warnings:
+[1] Covariance matrix calculated using the outer product of gradients (complex-step).
+pm.auto_arima automatically searches for the best combination of p, d, and q based on the lowest AIC. The best order is obtained using auto_arima_model.order. A new ARIMA model is created with the best order, and it is then fit to the data. The summary of the best-fitted model is printed. You can further explore the residuals and diagnostics of the best model to ensure that it meets the assumptions of the ARIMA model:
+
+
+[ ]
+# Residuals analysis
+best_model.plot_diagnostics(figsize=(15, 8))
+plt.show()
+
+
+This code will generate diagnostic plots, including residuals distribution, autocorrelation of residuals, and a Q-Q plot, to help you assess the model's performance.The stepwise parameter in auto_arima enables a stepwise search for the best model, and suppress_warnings is used to suppress warnings during the model fitting process.
+
+Selected ARIMA model
+
+
+[ ]
+import pmdarima as pm
+from statsmodels.graphics.tsaplots import plot_acf, plot_pacf
+import matplotlib.pyplot as plt
+
+# Assuming df is your DataFrame with a time-based index and a 'Sales' column
+
+# Plot ACF and PACF
+fig, (ax1, ax2) = plt.subplots(2, 1, figsize=(12, 8))
+
+# ACF plot
+plot_acf(df['Sales'], lags=20, ax=ax1)
+ax1.set_title('Autocorrelation Function (ACF)')
+
+# PACF plot
+plot_pacf(df['Sales'], lags=20, ax=ax2)
+ax2.set_title('Partial Autocorrelation Function (PACF)')
+
+plt.show()
+
+# Determine the order using pmdarima
+order = pm.auto_arima(df['Sales'], seasonal=False, stepwise=True, suppress_warnings=True)
+
+print("Recommended Order (p, d, q):", order.order)
+
+
+If the values obtained from the ACF and PACF analysis are 0, 0, 0, it suggests that there might not be a significant autocorrelation or partial autocorrelation in your data at any lag. In other words, the data might not exhibit a clear autoregressive or moving average pattern.
+
+In such cases, you can consider a simple model without autoregressive or moving average components. A model with p=0, d=0, and q=0 corresponds to a constant model, where the forecast for each period is simply the mean of the historical data.
+
+
+[ ]
+import statsmodels.api as sm
+import matplotlib.pyplot as plt
+
+# Assuming df is your DataFrame with a time-based index and a 'Sales' column
+# Plot the time series data
+df['Sales'].plot(figsize=(12, 6), title='Sales Time Series Data')
+plt.show()
+
+# Model Estimation with p=0, d=0, q=0
+p, d, q = 0, 0, 0
+model = sm.tsa.ARIMA(df['Sales'], order=(p, d, q))
+results = model.fit()
+
+# Print model summary
+print(results.summary())
+
+# Plot diagnostics
+results.plot_diagnostics(figsize=(15, 8))
+plt.show()
+
+# Forecast future values
+forecast_steps = 12  # Adjust as needed
+forecast = results.get_forecast(steps=forecast_steps)
+
+# Get confidence intervals
+conf_int = forecast.conf_int()
+
+# Plot the forecast
+plt.figure(figsize=(12, 6))
+plt.plot(df.index, df['Sales'], label='Actual Sales')
+plt.plot(forecast.predicted_mean.index, forecast.predicted_mean, color='red', label='Forecasted Sales')
+plt.fill_between(conf_int.index, conf_int.iloc[:, 0], conf_int.iloc[:, 1], color='pink', alpha=0.3, label='Confidence Interval')
+plt.title('ARIMA Sales Forecast')
+plt.legend()
+plt.show()
+
+
+
+[ ]
+import statsmodels.api as sm
+import matplotlib.pyplot as plt
+
+# Assuming df is your DataFrame with a time-based index and a 'Sales' column
+
+# Plot the time series data
+df['Sales'].plot(figsize=(12, 6), title='Sales Time Series Data')
+plt.show()
+
+# Model Estimation with p=0, d=0, q=0
+p, d, q = 0, 0, 0
+model = sm.tsa.ARIMA(df['Sales'], order=(p, d, q))
+results = model.fit()
+
+# Forecast future values
+forecast_steps = 12  # Adjust as needed
+forecast = results.get_forecast(steps=forecast_steps)
+
+# Get confidence intervals
+conf_int = forecast.conf_int()
+
+# Plot the actual vs. predicted sales
+plt.figure(figsize=(12, 6))
+plt.plot(df.index, df['Sales'], label='Actual Sales')
+plt.plot(forecast.predicted_mean.index, forecast.predicted_mean, color='red', label='Predicted Sales')
+plt.fill_between(conf_int.index, conf_int.iloc[:, 0], conf_int.iloc[:, 1], color='pink', alpha=0.3, label='Confidence Interval')
+plt.title('ARIMA Sales Forecast')
+plt.legend()
+plt.show()
+
+
+ARIMA model if p,q,d=1
+
+In the context of an ARIMA (AutoRegressive Integrated Moving Average) time series model, the values p, d, and q represent the orders of the autoregressive (AR) component, the integrated (I) component, and the moving average (MA) component, respectively. Let's break down the meaning of p=1, d=1, and q=1:
+
+p (Autoregressive Order):
+
+p=1 signifies that the model includes one lag of the dependent variable in the prediction equation. In other words, the current value of the time series is linearly dependent on the previous value. d (Integrated Order):
+
+d=1 indicates that the time series is differenced once to achieve stationarity. Differencing involves computing the difference between consecutive observations. The goal is to remove any trend or seasonality from the time series. q (Moving Average Order):
+
+q=1 means that the model includes one lag of the forecast errors (residuals) in the prediction equation. The current forecast is influenced by the previous forecast error. So, p=1, d=1, and q=1 together imply that the ARIMA model includes one lag of the original time series, one differencing to achieve stationarity, and one lag of the forecast errors.
+
+In summary, p=1, d=1, and q=1 represent a simple ARIMA model that accounts for short-term dependencies, stationarity, and one lag of forecast errors in the time series data. Adjusting these parameters allows you to capture different patterns and characteristics in the data.
+
+
+[ ]
+import statsmodels.api as sm
+import matplotlib.pyplot as plt
+
+# Assuming df is your DataFrame with a time-based index and a 'Sales' column
+# You may need to ensure that the index is in datetime format. If not, you can convert it using df['Date'] = pd.to_datetime(df['Date'])
+
+# Plot the time series data
+df['Sales'].plot(figsize=(12, 6), title='Sales Time Series Data')
+plt.show()
+
+# Model Identification
+# ... Identify d, p, and q using autocorrelation and partial autocorrelation plots ...
+
+# Model Estimation
+p, d, q = 1, 1, 1  # Replace with your identified values
+model = sm.tsa.ARIMA(df['Sales'], order=(p, d, q))
+results = model.fit()
+
+# Print model summary
+print(results.summary())
+
+# Plot diagnostics
+results.plot_diagnostics(figsize=(15, 8))
+plt.show()
+
+# Forecast future values
+forecast_steps = 12  # Adjust as needed
+forecast = results.get_forecast(steps=forecast_steps)
+
+# Get confidence intervals
+conf_int = forecast.conf_int()
+
+# Plot the forecast
+plt.figure(figsize=(12, 6))
+plt.plot(df.index, df['Sales'], label='Actual Sales')
+plt.plot(forecast.predicted_mean.index, forecast.predicted_mean, color='red', label='Forecasted Sales')
+plt.fill_between(conf_int.index, conf_int.iloc[:, 0], conf_int.iloc[:, 1], color='pink', alpha=0.3, label='Confidence Interval')
+plt.title('ARIMA Sales Forecast')
+plt.legend()
+plt.show()
+
+
+OUR MODEL p=0,d=0,q=0
+
+In this plot described below:
+
+The blue line represents the actual sales data. The red dashed line represents the forecasted values, which are constant and equal to the mean of the historical sales data. This simple constant model assumes that future values will be the same as the mean of the historical data. You can visually compare the actual and predicted values to assess how well the model captures the overall trend in the data. Keep in mind that with p=0, d=0, and q=0, the model does not account for any autoregressive or moving average effects.
+
+
+[ ]
+!pip install pandas
+
+Requirement already satisfied: pandas in /usr/local/lib/python3.10/dist-packages (1.5.3)
+Requirement already satisfied: python-dateutil>=2.8.1 in /usr/local/lib/python3.10/dist-packages (from pandas) (2.8.2)
+Requirement already satisfied: pytz>=2020.1 in /usr/local/lib/python3.10/dist-packages (from pandas) (2023.3.post1)
+Requirement already satisfied: numpy>=1.21.0 in /usr/local/lib/python3.10/dist-packages (from pandas) (1.23.5)
+Requirement already satisfied: six>=1.5 in /usr/local/lib/python3.10/dist-packages (from python-dateutil>=2.8.1->pandas) (1.16.0)
+
+[ ]
+import statsmodels.api as sm
+import matplotlib.pyplot as plt
+
+# Assuming df is your DataFrame with a 'Sales' column
+p, d, q = 0, 0, 0
+model = sm.tsa.ARIMA(df['Sales'], order=(p, d, q))
+results = model.fit()
+
+# Forecast future values
+forecast_steps = 12  # Adjust as needed
+forecast = results.get_forecast(steps=forecast_steps)
+
+# Get confidence intervals
+conf_int = forecast.conf_int()
+
+# Plot the actual vs. predicted sales
+plt.figure(figsize=(12, 6))
+plt.plot(df.index, df['Sales'], label='Actual Sales')
+plt.plot(forecast.predicted_mean.index, [df['Sales'].mean()] * forecast_steps, color='red', linestyle='dashed', label='Constant Model Forecast')
+plt.fill_between(conf_int.index, [df['Sales'].mean()] * forecast_steps, [df['Sales'].mean()] * forecast_steps, color='pink', alpha=0.3, label='Confidence Interval')
+plt.title('Constant Model Sales Forecast (p=0, d=0, q=0)')
+plt.legend()
+plt.show()
+
+
+
+[ ]
+import statsmodels.api as sm
+import matplotlib.pyplot as plt
+
+# Assuming df is your DataFrame with a 'Sales' column
+p, d, q = 0, 0, 0
+model = sm.tsa.ARIMA(df['Sales'], order=(p, d, q))
+results = model.fit()
+
+# Forecast future values
+forecast_steps = 12  # Adjust as needed
+forecast = results.get_forecast(steps=forecast_steps)
+
+# Get the constant forecast value (mean of historical data)
+constant_forecast = df['Sales'].mean()
+
+# Plot the actual vs. predicted sales
+plt.figure(figsize=(12, 6))
+plt.plot(df.index, df['Sales'], label='Actual Sales')
+plt.axhline(y=constant_forecast, color='red', linestyle='dashed', label='Constant Model Forecast')
+plt.fill_between(df.index[-1:] + forecast.predicted_mean.index, constant_forecast, constant_forecast, color='pink', alpha=0.3, label='Confidence Interval')
+plt.title('Constant Model Sales Forecast (p=0, d=0, q=0)')
+plt.legend()
+plt.show()
+
+
+
+[ ]
+plt.plot(df.index, df['Sales'])
+plt.title('Time Series Plot')
+plt.xlabel('Time')
+plt.ylabel('Sales')
+plt.show()
+
+
+
+[ ]
+import statsmodels.api as sm
+import matplotlib.pyplot as plt
+
+residuals = results.resid
+
+plt.figure(figsize=(12, 6))
+
+plt.subplot(1, 3, 1)
+plt.hist(residuals, bins=20)
+plt.title('Histogram of Residuals')
+
+plt.subplot(1, 3, 2)
+sm.qqplot(residuals, line='q', ax=plt.subplot(1, 3, 2))
+plt.title('QQ Plot of Residuals')
+
+plt.subplot(1, 3, 3)
+plt.scatter(results.fittedvalues, residuals)
+plt.axhline(y=0, color='r', linestyle='--')
+plt.title('Residuals vs Fitted Values')
+
+plt.tight_layout()
+plt.show()
+
+
+Residuals are the differences between the observed values and the values predicted by a model. In the context of time series analysis or regression modeling, residuals represent the unexplained variation in the data that the model has not captured. Analyzing residuals is a crucial step in assessing the performance and adequacy of a statistical model. Here's why residuals are important:
+
+Model Assessment: Residual analysis helps you evaluate how well your model fits the observed data. A good model should have residuals that are randomly distributed around zero, indicating that the model is capturing the underlying patterns in the data.
+
+Normality and Homoscedasticity: Checking the distribution of residuals helps assess whether the assumption of normality holds. A histogram or a QQ plot of residuals can indicate whether they follow a normal distribution. Additionally, scatter plots of residuals against predicted values help check for homoscedasticity (constant variance of residuals).
+
+Identifying Patterns: Examining the residuals can reveal any systematic patterns or trends that the model might have missed. For example, if there is a clear trend or seasonality in the residuals, it suggests that the model may need to be improved.
+
+Outlier Detection: Residual analysis helps identify outliers or influential data points that might be affecting the model's performance. Unusually large residuals can indicate observations that are not well explained by the model.
+
+Model Improvements: Understanding the structure of residuals can guide improvements to the model. If there are clear patterns or trends, you might need to consider more complex models or include additional explanatory variables.
+
+The code is visualizing the residuals in three ways:
+
+Histogram of Residuals: This shows the distribution of residuals. A normal distribution is desirable.
+
+QQ Plot (Quantile-Quantile Plot): This compares the quantiles of the residuals to the quantiles of a theoretical normal distribution. A straight line in the QQ plot suggests normality.
+
+Residuals vs Fitted Values Plot: This scatter plot helps identify patterns or heteroscedasticity in the residuals. A random scatter around the horizontal line at 0 is desirable.
+
+By examining these plots, you can gain insights into the performance and assumptions of your model.
+
+
+[ ]
+residuals = results.resid
+
+plt.figure(figsize=(12, 6))
+plt.subplot(1, 3, 1)
+plt.hist(residuals, bins=20)
+plt.title('Histogram of Residuals')
+
+plt.subplot(1, 3, 2)
+sm.qqplot(residuals, line='q', ax=plt.subplot(1, 3, 2))
+plt.title('QQ Plot of Residuals')
+
+plt.subplot(1, 3, 3)
+plt.scatter(results.fittedvalues, residuals)
+plt.axhline(y=0, color='r', linestyle='--')
+plt.title('Residuals vs Fitted Values')
+
+plt.tight_layout()
+plt.show()
+
+
+If the scatter plot of residuals against fitted values shows a horizontal red dotted line at 0 and the scatter points are vertically aligned at a specific value (such as 14.0), it suggests a potential issue in the model. Specifically, this pattern indicates a systematic error in the model's predictions.
+
+Here are a few possible interpretations:
+
+Constant Offset in Model: The presence of a vertical line at a specific value might indicate that the model is consistently underestimating or overestimating the true values by a fixed amount. This could be due to a constant offset or bias in the model.
+
+Model Misspecification: The model might not be capturing some important non-linear patterns or relationships in the data. This could lead to a systematic error in the predictions.
+
+Outliers or Influential Observations: There might be specific observations in the data that have a disproportionate impact on the model's predictions, causing a systematic pattern in the residuals.
+
+To address this issue, you may want to investigate the specific characteristics of the data where the residuals deviate from the expected behavior. Here are some steps you can take:
+
+Identify and examine specific observations with large residuals. Consider if there are any missing predictor variables that could improve the model. Check for outliers or influential observations that might be affecting the model's performance. Explore more complex models or nonlinear relationships if the data suggests such patterns. Additionally, you may want to revisit the assumptions of your model and consider whether they hold for your specific data. For example, check for linearity, independence of errors, and homoscedasticity.
+
+
+[ ]
+# Define a threshold for identifying large residuals
+threshold = 2  # Adjust as needed based on your data and requirements
+
+# Identify observations with large residuals
+large_residuals = df[results.resid.abs() > threshold]
+
+# Print or analyze specific observations
+print("Observations with Large Residuals:")
+print(large_residuals)
+
+Observations with Large Residuals:
+        TV       Radio   Newspaper    Sales 
+17   1.580618  1.110942  1.275961   2.010279
+36   1.410484  1.394256 -1.214893   2.203219
+98   1.678005  1.293072  1.050411   2.203219
+128  0.863711  1.745026 -1.303152   2.068161
+130 -1.712932  1.110942 -1.033473  -2.388753
+147  1.132404  1.745026  0.712087   2.203219
+155 -1.673039 -0.777819 -1.180571  -2.080049
+175  1.527818  1.738280  0.589505   2.511923
+183  1.653365  1.340291  2.060482   2.357571
+198  1.606431  1.272836  1.785900   2.222513
+
+[ ]
+# Check for missing values in predictor variables
+missing_predictors = df[['TV', 'Radio', 'Newspaper']].isnull().sum()
+print("Missing Predictor Variables:")
+print(missing_predictors)
+
+Missing Predictor Variables:
+TV           0
+Radio        0
+Newspaper    0
+dtype: int64
+
+[ ]
+# Check for linearity by plotting residuals against fitted values
+plt.scatter(results.fittedvalues, results.resid)
+plt.xlabel('Fitted Values')
+plt.ylabel('Residuals')
+plt.title('Residuals vs Fitted Values')
+plt.show()
+
+# Check for independence of errors using autocorrelation or Durbin-Watson test
+autocorrelation = results.resid.autocorr()
+print("Autocorrelation of Residuals:", autocorrelation)
+
+# Check for homoscedasticity using a scatter plot of residuals against predictor variables
+plt.scatter(df['TV'], results.resid)
+plt.xlabel('TV')
+plt.ylabel('Residuals')
+plt.title('Residuals vs TV')
+plt.show()
+
+
+check some additional diagnostic plots and metrics to assess the adequacy of the ARIMA model:
+
+Plot Residuals Over Time:
+
+[ ]
+# Plot residuals over time
+plt.figure(figsize=(12, 6))
+plt.plot(residuals)
+plt.title('Residuals Over Time')
+plt.xlabel('Time')
+plt.ylabel('Residuals')
+plt.show()
+
+
+
+[ ]
+from statsmodels.stats.stattools import durbin_watson
+
+# Durbin-Watson test for autocorrelation
+durbin_watson_stat = durbin_watson(residuals)
+print("Durbin-Watson Statistic:", durbin_watson_stat)
+
+Durbin-Watson Statistic: 1.9204261838910708
+The Durbin-Watson statistic measures the presence of autocorrelation in the residuals. The statistic ranges from 0 to 4, where:
+
+A value around 2 indicates no autocorrelation. Values significantly below 2 suggest positive autocorrelation. Values significantly above 2 suggest negative autocorrelation. In your case, the Durbin-Watson statistic is approximately 1.92. This value is close to 2, indicating that there is not strong evidence of autocorrelation in the residuals. However, the statistic is below 2, which may suggest a mild positive autocorrelation.
+
+Interpretation:
+
+Durbin-Watson Statistic ≈ 2: No significant autocorrelation. Durbin-Watson Statistic < 2: Positive autocorrelation. Durbin-Watson Statistic > 2: Negative autocorrelation. In your context, a value of 1.92 suggests that there might be a mild positive autocorrelation in the residuals. While this is not a critical issue, it's worth considering when interpreting the model's performance.
+
+Conclusion:
+
+In concluding this project on sales prediction, we have navigated a multifaceted exploration encompassing traditional statistical methods, advanced machine learning models, and time series forecasting techniques. The journey began with exploratory data analysis (EDA) to understand the inherent patterns and relationships within the sales dataset. Subsequently, we delved into linear regression analysis, shedding light on the impact of advertising on sales and uncovering valuable insights for marketing strategy optimization.
+
+The integration of powerful machine learning models, such as AutoML, GBM, XGBoost, and Stacked Ensemble, significantly elevated our predictive capabilities. Their ability to discern intricate patterns and dependencies in the data has equipped us with a robust foundation for accurate sales predictions. Ensemble learning, exemplified by the Stacked Ensemble model, emerged as a key strategy for mitigating model weaknesses and enhancing overall prediction reliability.
+
+The application of time series forecasting models, specifically ARIMA and SARIMAX, underscored their accuracy in predicting future sales values. These models, designed for sequential data, provided a nuanced understanding of temporal trends and fluctuations in the sales landscape.
+
+Insights Gained:
+
+Interactivity and Collaboration: Google Colab facilitates seamless collaboration and interactivity in data science projects. Leverage its features for real-time collaboration, code sharing, and interactive visualization to enhance the project's collaborative aspect.
+
+Code Documentation: In Colab, use Markdown cells to document code comprehensively. Clearly explain the purpose and functionality of each code block, ensuring that the project remains accessible to collaborators and future users.
+
+Visualization and Interpretation: Take advantage of Colab's visualization capabilities to create interactive charts and graphs. Clearly interpret the visualizations, making it easier for collaborators to grasp the key findings and insights derived from the data.
+
+Integration with External Libraries: Colab seamlessly integrates with popular external libraries. If specific libraries or tools were instrumental in the analysis, document their integration and highlight their contribution to the project.
+
+Sharing Results: Use Colab to share not only the code but also the results and insights gained from the project. Create a narrative that guides readers through the analytical journey, explaining the significance of each step and the overarching impact on sales prediction.
+
+Future Work and Iteration: Conclude the Colab notebook by outlining potential areas for future work and iteration. This could include refining models, exploring additional features, or incorporating new data sources for a more comprehensive analysis.
+
+Acknowledgments and References: If applicable, acknowledge the contributions of collaborators, data sources, or external references that enriched the project. This fosters transparency and gives credit where it's due.
+
+Colab paid products - Cancel contracts here
